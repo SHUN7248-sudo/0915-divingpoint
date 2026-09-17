@@ -1,0 +1,544 @@
+/* style.css — 메인·상세 두 화면이 함께 쓰는 스타일
+ * 색·배경 수치의 출처는 docs/design-standard.md (Stitch "Pelagic Minimalist" 시스템).
+ */
+
+/* ---------- 1. 디자인 토큰 ----------
+   색·글자크기·간격을 여기 한 곳에 변수로 모아 둔다.
+   나중에 색을 바꿀 때 이 블록만 고치면 전체가 따라 바뀐다. */
+:root {
+  /* 바탕 — 순백을 크게 깔지 않고 아주 옅게 색을 머금은 면으로 둔다.
+     흰 바탕 위 검은 글씨보다 대비가 한 단계 낮아 오래 봐도 덜 피로하다. */
+  --color-bg: #f8f9ff;        /* 옅은 블루 화이트 */
+  --color-bg-2: #f2f6fc;      /* 중간 */
+  --color-bg-3: #eaf1f4;      /* 옅은 청록 */
+
+  /* 면 */
+  --color-surface: #ffffff;       /* 카드·표 */
+  --color-surface-soft: #f4f8fd;  /* 선택 안 된 버튼 등 보조 면 */
+
+  /* 강조 */
+  --color-primary: #006948;       /* 선택된 버튼, 강조 테두리, 금액 숫자에만 */
+  --color-primary-hover: #00553a;
+  --color-primary-soft: #e6f4ee;  /* 옅은 틴트 */
+  --color-primary-line: #9fd6bf;
+
+  /* 선 */
+  --color-line: #dbe4f0;
+
+  /* 글자 */
+  --color-text: #121c2a;        /* 본문 — 순검정 대신 짙은 남회색 */
+  --color-text-2: #3d4a42;      /* 보조 본문 */
+  /* 시안의 outline(#6d7a72)은 흰 면 위 대비가 4.3:1 이라 작은 글씨에는 살짝 흐리다.
+     항상 떠 있어야 하는 "1인 기준 · 예시 데이터" 안내를 위해 한 단계만 어둡게 잡았다. */
+  --color-text-muted: #616e66;  /* 라벨·단위·메타 (대비 5.1:1) */
+
+  /* 누락/경고 — 차분한 앰버 */
+  --color-warn-text: #8d4b00;
+  --color-warn-bg: #fff3e4;
+  --color-warn-line: #f0d9bd;
+
+  /* 그림자 — 검은 흐린 그림자 대신 아주 옅은 에메랄드 기운만 */
+  --shadow-card: 0 1px 2px rgba(18, 28, 42, 0.04), 0 10px 30px -18px rgba(0, 105, 72, 0.28);
+  --shadow-card-hover: 0 1px 2px rgba(18, 28, 42, 0.05), 0 16px 36px -18px rgba(0, 105, 72, 0.38);
+
+  /* 글자 크기 */
+  --fs-amount: 28px;  /* 총비용·금액 */
+  --fs-spot: 20px;    /* 스팟명 */
+  --fs-body: 16px;    /* 본문 */
+  --fs-label: 14px;   /* 라벨·안내문구 */
+
+  /* 간격 (8의 배수) */
+  --space-1: 8px;
+  --space-2: 16px;
+  --space-3: 24px;
+  --space-4: 32px;
+
+  /* 모양 */
+  --radius-card: 12px;
+  --radius-button: 8px;
+  --height-button: 48px;
+}
+
+/* ---------- 2. 기본값 ---------- */
+* {
+  box-sizing: border-box; /* 패딩을 넣어도 폭이 늘어나지 않게 — 390px 가로 스크롤 방지의 핵심 */
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  min-height: 100vh;
+  /* 위쪽에 은은한 빛 한 겹 + 아래로 내려가며 옅은 청록으로 바뀌는 바탕.
+     background-attachment: fixed 라서 스크롤해도 바탕이 따라 움직이지 않는다. */
+  background:
+    radial-gradient(1200px 620px at 50% -12%, rgba(0, 105, 72, 0.07), transparent 62%),
+    linear-gradient(180deg, var(--color-bg) 0%, var(--color-bg-2) 46%, var(--color-bg-3) 100%);
+  background-attachment: fixed;
+  color: var(--color-text);
+  font-family: "Geist", "Pretendard", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
+  font-size: var(--fs-body);
+  line-height: 1.6;
+  letter-spacing: -0.01em;
+  -webkit-text-size-adjust: 100%;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+/* 숫자는 자릿수가 달라도 세로로 줄이 맞게(tabular-nums) 표시한다. */
+.spot-card__amount,
+.price-table td {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+
+.page {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 0 var(--space-3) var(--space-4);
+}
+
+/* ---------- 3. 상단 고정 영역 ----------
+   안내 문구와 가격대 토글은 화면 맨 위에 붙어 있어 스크롤해도 사라지지 않는다. */
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  /* 반투명 + 흐림 처리 — 아래 내용이 비쳐 지나가 딱딱하지 않다. */
+  background: rgba(248, 249, 255, 0.86);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--color-line);
+}
+
+.topbar__inner {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: var(--space-2) var(--space-3);
+}
+
+.site-title {
+  margin: 0 0 var(--space-1);
+  font-size: var(--fs-spot);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.notice {
+  margin: 0;
+  font-size: var(--fs-label);
+  line-height: 1.55;
+  color: var(--color-text-muted);
+}
+
+.notice strong {
+  color: var(--color-primary);
+  font-weight: 600;
+}
+
+/* 가격대 토글 */
+.tier-group {
+  display: flex;
+  gap: var(--space-1);
+  margin-top: var(--space-2);
+}
+
+.tier-button {
+  flex: 1 1 0;
+  height: var(--height-button);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-button);
+  background: var(--color-surface-soft);
+  color: var(--color-text-2);
+  font-size: var(--fs-label);
+  font-family: inherit;
+  letter-spacing: -0.01em;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.tier-button:hover {
+  border-color: var(--color-primary-line);
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+}
+
+.tier-button:focus-visible {
+  outline: 2px solid var(--color-primary-line);
+  outline-offset: 2px;
+}
+
+.tier-button[aria-pressed="true"] {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.tier-button[aria-pressed="true"]:hover {
+  background: var(--color-primary-hover);
+  border-color: var(--color-primary-hover);
+  color: #ffffff;
+}
+
+/* ---------- 4. 카드 3개 (메인) ---------- */
+.spot-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr); /* 같은 크기로 나란히 */
+  gap: var(--space-3);                   /* 카드 사이 간격 24px ≥ 카드 내부 여백 16px */
+  margin-top: var(--space-3);
+  padding: 0;
+  list-style: none;
+}
+
+.spot-card {
+  display: block;
+  height: 100%;
+  padding: var(--space-2);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-card);
+  background: var(--color-surface); /* 옅은 바탕 위에 흰 카드가 떠 보인다 */
+  box-shadow: var(--shadow-card);
+  color: inherit;
+  text-decoration: none;
+  cursor: pointer;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+}
+
+.spot-card:hover,
+.spot-card:focus-visible {
+  border-color: var(--color-primary); /* 강조 테두리 — 두께는 그대로라 카드가 흔들리지 않는다 */
+  box-shadow: var(--shadow-card-hover);
+  transform: translateY(-2px);
+  outline: none;
+}
+
+.spot-card__name {
+  margin: 0;
+  font-size: var(--fs-spot);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.spot-card__amount-label {
+  margin: var(--space-2) 0 var(--space-1);
+  font-size: var(--fs-label);
+  color: var(--color-text-muted);
+}
+
+.spot-card__amount {
+  margin: 0;
+  font-size: var(--fs-amount);
+  font-weight: 600;
+  line-height: 1.25;
+  color: var(--color-primary);
+  word-break: keep-all;
+}
+
+.spot-card__meta {
+  margin: var(--space-1) 0 0;
+  font-size: var(--fs-label);
+  color: var(--color-text-muted);
+}
+
+.spot-card__more {
+  margin: var(--space-2) 0 0;
+  font-size: var(--fs-label);
+  font-weight: 500;
+  color: var(--color-primary);
+}
+
+/* ---------- 5. 상세 화면 ---------- */
+.back-link {
+  display: inline-flex;
+  align-items: center;
+  height: var(--height-button);
+  padding: 0 var(--space-2);
+  margin-top: var(--space-3);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-button);
+  background: var(--color-surface);
+  color: var(--color-text-2);
+  font-size: var(--fs-label);
+  text-decoration: none;
+  transition: border-color 0.15s ease, color 0.15s ease, background-color 0.15s ease;
+}
+
+.back-link:hover {
+  border-color: var(--color-primary-line);
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+}
+
+.back-link:focus-visible {
+  outline: 2px solid var(--color-primary-line);
+  outline-offset: 2px;
+}
+
+.detail-title {
+  margin: var(--space-3) 0 0;
+  font-size: var(--fs-spot);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.section-title {
+  margin: var(--space-4) 0 var(--space-2);
+  font-size: var(--fs-label);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+/* 일정 5종 금액 표 */
+.price-table {
+  width: 100%;
+  border-collapse: separate;  /* 모서리를 둥글게 유지하려면 separate 가 필요하다 */
+  border-spacing: 0;
+  background: var(--color-surface);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
+}
+
+.price-table th,
+.price-table td {
+  padding: var(--space-2);
+  text-align: left;
+  border-bottom: 1px solid var(--color-line);
+}
+
+.price-table tr:last-child th,
+.price-table tr:last-child td {
+  border-bottom: none;
+}
+
+.price-table tr:hover th,
+.price-table tr:hover td {
+  background: var(--color-primary-soft);
+}
+
+.price-table th {
+  font-size: var(--fs-body);
+  font-weight: 500;
+  color: var(--color-text-2);
+  white-space: nowrap;
+}
+
+.price-table td {
+  font-size: var(--fs-amount);
+  font-weight: 600;
+  color: var(--color-primary);
+  text-align: right;
+  word-break: keep-all;
+}
+
+.price-table td.is-missing {
+  font-size: var(--fs-label);
+  font-weight: 400;
+  color: var(--color-warn-text);
+  text-align: left;
+  letter-spacing: normal;
+}
+
+/* 주요 다이빙 포인트 카드 */
+.point-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.point-card {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
+  overflow: hidden; /* 사진이 카드 둥근 모서리 밖으로 삐져나오지 않게 */
+}
+
+/* 사진 자리 — 사진이 아직 없어도 높이가 유지돼 화면이 덜컹거리지 않는다. */
+.point-card__photo {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  background: linear-gradient(135deg, #e8f0f7 0%, #dfeae8 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.point-card__photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover; /* 비율이 달라도 잘라서 꽉 채운다 */
+  display: block;
+}
+
+/* 안내문은 평소엔 숨어 있다가, 사진 로딩에 실패했을 때만 나타난다. */
+.point-card__hint {
+  display: none;
+  margin: 0;
+  padding: var(--space-2);
+  font-size: 13px;
+  line-height: 1.5;
+  text-align: center;
+  color: var(--color-text-muted);
+  word-break: break-all;
+}
+
+.point-card__photo.is-empty .point-card__hint {
+  display: block;
+}
+
+.point-card__body {
+  padding: var(--space-2);
+}
+
+.point-card__title {
+  margin: 0;
+  font-size: var(--fs-body);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.point-card__en {
+  margin: 0 0 var(--space-1);
+  font-size: var(--fs-label);
+  color: var(--color-text-muted);
+}
+
+.point-card__desc {
+  margin: var(--space-1) 0 0;
+  font-size: var(--fs-label);
+  line-height: 1.6;
+  color: var(--color-text-2);
+}
+
+/* 작은 라벨(칩) 묶음 */
+.chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+}
+
+.chip {
+  padding: 2px var(--space-1);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-button);
+  background: var(--color-surface-soft);
+  font-size: 13px;
+  color: var(--color-text-2);
+  white-space: nowrap;
+}
+
+/* 출처 표기 */
+.source-note {
+  margin: var(--space-1) 0 0;
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+/* 자유일정 카드 2개 */
+.free-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.free-card {
+  padding: var(--space-2);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
+}
+
+.free-card__title {
+  margin: 0 0 var(--space-1);
+  font-size: var(--fs-body);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.free-card__desc {
+  margin: 0 0 var(--space-2);
+  font-size: var(--fs-body);
+  color: var(--color-text-2);
+}
+
+.free-card__timing {
+  display: inline-block;
+  padding: 4px var(--space-1);
+  border: 1px solid var(--color-primary-line);
+  border-radius: var(--radius-button);
+  background: var(--color-primary-soft);
+  font-size: var(--fs-label);
+  font-weight: 500;
+  color: var(--color-primary);
+}
+
+/* ---------- 6. 경고 / 누락 상태 ---------- */
+.warn-box {
+  margin-top: var(--space-3);
+  padding: var(--space-2);
+  border: 1px solid var(--color-warn-line);
+  border-radius: var(--radius-card);
+  background: var(--color-warn-bg);
+  color: var(--color-warn-text);
+  font-size: var(--fs-label);
+}
+
+.is-hidden {
+  display: none;
+}
+
+/* ---------- 7. 모바일 (390px 기준) ---------- */
+@media (max-width: 720px) {
+  :root {
+    --fs-amount: 24px; /* 여전히 화면에서 가장 큰 글자 */
+  }
+
+  .page {
+    padding: 0 var(--space-2) var(--space-4);
+  }
+
+  .topbar__inner {
+    padding: var(--space-2);
+  }
+
+  /* 카드는 세로로 하나씩, 폭을 꽉 채운다 */
+  .spot-grid,
+  .free-grid,
+  .point-grid {
+    grid-template-columns: 1fr;
+    gap: var(--space-2);
+  }
+
+  .price-table th,
+  .price-table td {
+    padding: var(--space-1) var(--space-2);
+  }
+}
+
+/* ---------- 8. 움직임을 줄이도록 설정한 사용자 배려 ---------- */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+  }
+  .spot-card:hover {
+    transform: none;
+  }
+}
